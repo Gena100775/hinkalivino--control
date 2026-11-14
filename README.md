@@ -30,7 +30,7 @@ Run `python -m pytest -q` on a disposable database only.
   task restrictions, password/session revocation, deactivation, host validation and throttling.
 - Dependency scan (`pip-audit`): no known vulnerabilities reported by the advisory service.
 - Python syntax compilation and JavaScript `node --check`: passed.
-- PostgreSQL CI workflow prepared with PostgreSQL 16; not yet executed on GitHub.
+- GitHub Actions PostgreSQL 16 integration tests and dependency audit passed on commit c0824fda4307adacbf575a664a5d255e418e0f1f.
 - Browser QA and Render runtime verification remain pending. See SECURITY.md.
 
 ## GitHub and Render
@@ -39,11 +39,19 @@ Target: https://github.com/Gena100775/hinkalivino--control
 GitHub connection verified for Gena100775. Source is uploaded to the review branch
 `staging/v0.5-security`. No application has been deployed. Never force-push remote history.
 
-`render.yaml` prepares a private PostgreSQL-backed staging service with external database
-access disabled, auto-deploy off, and HV_RELEASE_APPROVED=false. It is intentionally blocked
-from starting before the security gates are cleared. No Render resources were created.
+`render.yaml` now plans Render Free in Frankfurt, with Neon Free for PostgreSQL.
+The Neon project has been verified in aws-eu-central-1 on its Free plan.
+DATABASE_URL must be supplied through the Render secret environment, with TLS and preferably
+a pooled connection. Never commit or print credentials. Create a separate test branch/database
+on Neon before schema initialization; leave the default branch untouched.
 
-After review: connect repository in Render, verify current pricing, inspect Blueprint changes,
-configure strong HV_ADMIN_PASSWORD and exact HV_ALLOWED_HOSTS, then explicitly clear the
-release gate. Keep staging private. Public access is a separate release decision.
+No Render web service or deployment has been created. The previous paid/private plan was not
+approved. The free service would have a PUBLIC network address after deployment; authentication
+does not make it a private service. Auto-deploy is off and HV_RELEASE_APPROVED=false blocks
+startup. Security review and explicit approval of the reviewed deployment plan are still required.
+
+Render Free sleeps after 15 idle minutes and has usage quotas. Neon Free has storage/compute
+quotas and scale-to-zero. Keep accounts on Free and do not add billing for this test.
+Free plans are for synthetic-data testing, not live restaurant operations.
+
 Render specification: https://render.com/docs/blueprint-spec

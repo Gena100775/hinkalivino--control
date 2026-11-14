@@ -1,23 +1,18 @@
-# Preparation only. Do not create resources before reviewing SECURITY.md.
-databases:
-  - name: hv-control-staging-db
-    databaseName: hv_control_staging
-    user: hv_app
-    plan: basic-256mb
-    ipAllowList: []
+# Plan only. Do not approve or deploy until SECURITY.md release gates are cleared.
+# PostgreSQL is hosted on Neon Free; never place its credentials in this file.
 services:
-  - type: pserv
-    name: hv-control-staging
+  - type: web
+    name: hv-control-free-staging
     runtime: python
-    plan: starter
+    region: frankfurt
+    plan: free
     autoDeployTrigger: 'off'
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port 10000 --workers 1
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT --workers 1
+    healthCheckPath: /api/health
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: hv-control-staging-db
-          property: connectionString
+        sync: false
       - key: HV_ENV
         value: production
       - key: HV_RELEASE_APPROVED
