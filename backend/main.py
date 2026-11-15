@@ -52,7 +52,15 @@ async def lifespan(app):
  initialize()
  yield
 app=FastAPI(title='H&V Control',version='0.5.0',docs_url=None,redoc_url=None,openapi_url=None, lifespan=lifespan)
-app.add_middleware(TrustedHostMiddleware,allowed_hosts=[x.strip() for x in os.getenv('HV_ALLOWED_HOSTS','localhost,127.0.0.1').split(',')])
+def configured_hosts():
+ explicit=os.getenv('HV_ALLOWED_HOSTS','').strip()
+ if explicit:return [x.strip() for x in explicit.split(',') if x.strip()]
+ # Render supplies the exact assigned hostname; never allow a wildcard domain.
+ host=os.getenv('RENDER_EXTERNAL_HOSTNAME','').strip()
+ if host and not re.fullmatch(r'[a-zA-Z0-9-]+\.onrender\.com',host):
+  raise RuntimeError('Invalid Render hostname')
+ return ([host] if host else [])+['localhost','127.0.0.1']
+app.add_middleware(TrustedHostMiddleware,allowed_hosts=configured_hosts())
 app.add_middleware(CORSMiddleware,allow_origins=[x for x in os.getenv('HV_ORIGINS','').split(',') if x],allow_methods=['GET','POST'],allow_headers=['Authorization','Content-Type'])
 @app.middleware('http')
 async def security_headers(request: Request, call_next):
