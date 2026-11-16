@@ -1,0 +1,32 @@
+name: Security and integration checks
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        postgres: ['16', '18']
+        python: ['3.12', '3.14']
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
+        env:
+          POSTGRES_USER: hv_test
+          POSTGRES_PASSWORD: synthetic_ci_only
+          POSTGRES_DB: hv_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U hv_test" --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg://hv_test:synthetic_ci_only@localhost:5432/hv_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: python -m pytest -q
+      - run: pip-audit -r requirements.txt
