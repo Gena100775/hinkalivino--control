@@ -55,3 +55,11 @@ quotas and scale-to-zero. Keep accounts on Free and do not add billing for this 
 Free plans are for synthetic-data testing, not live restaurant operations.
 
 Render specification: https://render.com/docs/blueprint-spec
+
+## Security staging update 0.5.1
+
+Login budgets now persist in PostgreSQL, browser JS uses external files under a stricter CSP,
+and startup can run without database schema privileges. `HV_SCHEMA_MANAGED=true` verifies
+schema version 1 and skips DDL. Apply migrations/001_initial.sql as the database owner first;
+use a database-scoped read/write role for runtime. Keep secrets out of Git and chat.
+The exact release commit must pass CI before enabling synthetic-data staging. See SECURITY.md.

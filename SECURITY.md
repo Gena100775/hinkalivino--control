@@ -1,36 +1,39 @@
-# Security review — 2026-11-15
+# Security review — 2026-11-16
 
-Status: staging preparation; NOT approved for public or real-employee use.
+Scope: synthetic-data staging only. This is not approval for real employee data or production accounting.
 
-## Implemented and tested locally
-- Argon2id password hashes; random bearer sessions stored hashed, with 8-hour expiration.
-- Server-side role and restaurant checks; owner-only user creation/listing/deactivation.
-- Password changes and deactivation revoke all affected sessions.
-- Assigned-role/supervisor checks for task completion.
-- Login failure throttle, generic credential errors and dummy hash for missing users.
-- Parameterized SQL, escaped UI strings, no browser token persistence, no-store responses.
-- PostgreSQL row locks for receipts/inventory; receipt state prevents duplicate stock credits.
-- Security headers and allowed-host checks. PostgreSQL required in production.
-- Deployment startup blocked unless HV_RELEASE_APPROVED=true in production.
+Implemented:
+- Argon2id passwords and random bearer sessions; only token hashes are stored in PostgreSQL.
+- Eight-hour session expiration; logout, password changes and deactivation invalidate sessions.
+- Server-side restaurant and role checks; owner-only employee administration.
+- Database-backed login request budgets (20 per IP and 40 per account in 15 minutes), atomic
+  increments, and bounded concurrent password verification. Successful login does not reset budgets.
+- Parameterized SQL; PostgreSQL row locks prevent duplicate receipts; inventory and receipts
+  share restaurant locks. Supplier buyers cannot perform final receipt.
+- Separate JS/CSS assets; script CSP allows same-origin files only; user strings are escaped.
+- Validation errors exclude submitted field values. No browser localStorage/sessionStorage tokens.
+- Exact Render hostname allowlist, no-store, frame denial, permissions and referrer policies.
+- Versioned initial schema in migrations/001_initial.sql. Managed startup verifies schema version
+  and avoids DDL; application runtime must use a scoped read/write database role.
+- HV_RELEASE_APPROVED=false prevents startup before database access, verified by regression test.
 
-## Release gates still open
-1. PostgreSQL 16 integration suite passed in GitHub Actions for c0824fda; rerun after application changes.
-2. Dependency audit passed in CI on the pinned requirements; this does not establish overall application security.
-3. Complete mobile browser QA for each role, error states, password changes and deactivation.
-4. Replace in-memory login rate limiting with shared persistent limiting before scaling.
-5. Add versioned schema migrations, restore-tested backups and monitoring before real use.
-6. Review role matrix with owner: owner/manager/chef/accountant/buyer have network scope;
-   souschef/bar are restricted to one restaurant. Do not infer per-employee assignments.
-7. Verify TLS to Neon, least-privilege database access, exact Render hostname and a separate synthetic-data database branch.
-8. Independent security review before enabling public access or onboarding real employees.
+Checks:
+- Local authorization/workflow tests passed on disposable SQLite; concurrency test is PostgreSQL-only.
+- Initial schema applied successfully to isolated Neon QA branch on PostgreSQL 18.
+- Dependency audit reported no known vulnerabilities. This does not establish absence of flaws.
+- GitHub CI targets PostgreSQL 16/18; results must pass for the release commit.
+- Local browser QA could not connect to the container's localhost; no browser pass is claimed.
 
-No real employee data, passwords, contacts or payroll are included. Synthetic credentials in
-CI/tests are for disposable test databases only. Do not reuse them on a live service.
-The financial module remains out of scope for this version; there is no accounting ledger.
+Staging release procedure:
+1. Require passing CI for the exact commit; run migration on the isolated staging database.
+2. Use a read/write runtime role, TLS connection, one server process, Free plan and auto-deploy off.
+3. Only after code/security checks above pass, enable a synthetic-data staging run to verify
+   actual browser login, role visibility and workflows. Keep real employees and business records out.
+4. Do not call a service usable until HTTPS health, unauthenticated access denial and browser
+   behavior are checked. If runtime/browser checks fail, restore the gate.
 
-Render config now plans a FREE public-network web service, with Neon Free PostgreSQL.
-The former paid private-service plan was never approved. No Render compute or database was
-created. Free public ingress must not be confused with internal-only private hosting.
-Auto-deploy is off and the production release gate remains false. Planning is safe; approving
-and applying the Blueprint can start deployment. Do not approve it until the security review
-and user approval of the reviewed deployment plan are complete. Do not use real employee data.
+Before real operational use: independent security review, restore-tested backups, data retention
+and privacy review, MFA/account recovery, audit pagination, monitoring, request-size/load testing,
+and an approved role matrix. Finance/POS integrations and accounting ledger are not implemented.
+Free web service ingress is PUBLIC even though application routes require login.
+No production or real-employee approval is implied by a green test suite.

@@ -36,6 +36,6 @@ def test_host_headers_and_login_throttle():
   r=c.get('/')
   assert r.headers['cache-control']=='no-store'
   assert r.headers['x-frame-options']=='DENY'
-  for _ in range(8):
+  for _ in range(20):
    assert c.post('/api/login',json={'username':'nonexistent','password':'wrong'}).status_code==401
   assert c.post('/api/login',json={'username':'nonexistent','password':'wrong'}).status_code==429

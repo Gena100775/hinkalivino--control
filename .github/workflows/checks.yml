@@ -5,9 +5,13 @@ permissions:
 jobs:
   tests:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        postgres: ['16', '18']
+        python: ['3.12', '3.14']
     services:
       postgres:
-        image: postgres:16
+        image: postgres:${{ matrix.postgres }}
         env:
           POSTGRES_USER: hv_test
           POSTGRES_PASSWORD: synthetic_ci_only
@@ -22,7 +26,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: ${{ matrix.python }}
       - run: pip install -r requirements.txt -r requirements-dev.txt
       - run: python -m pytest -q
       - run: pip-audit -r requirements.txt

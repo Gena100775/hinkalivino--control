@@ -9,7 +9,8 @@ os.environ['HV_ALLOWED_HOSTS']='testserver,localhost,127.0.0.1'
 
 @pytest.fixture(autouse=True)
 def clear_login_throttle():
- from backend.main import failures
- failures.clear()
+ from backend.main import engine
+ from sqlalchemy import inspect,text
+ if inspect(engine).has_table('login_limits'):
+  with engine.begin() as c:c.execute(text('DELETE FROM login_limits'))
  yield
- failures.clear()

@@ -21,3 +21,18 @@ def test_render_hostname_is_exact_and_explicit_hosts_take_precedence(monkeypatch
   main.configured_hosts()
  monkeypatch.setenv('HV_ALLOWED_HOSTS','example.test, localhost')
  assert main.configured_hosts()==['example.test','localhost']
+
+
+def test_managed_schema_startup_never_creates_tables(monkeypatch):
+ from fastapi.testclient import TestClient
+ from sqlalchemy import event
+ with TestClient(main.app):
+  monkeypatch.setenv('HV_SCHEMA_MANAGED','true')
+  statements=[]
+  def observe(conn,cursor,statement,parameters,context,executemany):
+   statements.append(statement)
+  event.listen(main.engine,'before_cursor_execute',observe)
+  try:main.initialize()
+  finally:event.remove(main.engine,'before_cursor_execute',observe)
+  assert statements
+  assert not any(q.lstrip().upper().startswith('CREATE ') for q in statements)
